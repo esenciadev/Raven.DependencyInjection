@@ -7,8 +7,44 @@ using Microsoft.Extensions.Options;
 using Raven.Client.Documents;
 using Raven.DependencyInjection;
 
-namespace MyApp
+namespace YourNamespace
 {
+    public static class ServiceCollectionExtensions
+    {
+        /// <summary>
+        /// Adds a Raven <see cref="IDocumentStore"/> singleton to the dependency injection services.
+        /// The document store is configured using a <see cref="RavenSettings"/> section in your appsettings.json file.
+        /// </summary>
+        /// <param name="services">The dependency injection services.</param>
+        /// <returns>The dependency injection services.</returns>
+        public static IServiceCollection AddRavenDbDocStore(this IServiceCollection services)
+        {
+            return services.AddRavenDbDocStore(options => { });
+        }
+
+        /// <summary>
+        /// Adds a Raven <see cref="IDocumentStore"/> singleton to the dependency injection services.
+        /// The document store is configured based on the <see cref="RavenOptions"/> action configuration.
+        /// </summary>
+        /// <param name="services">The dependency injection services.</param>
+        /// <param name="options">The configuration for the <see cref="RavenOptions"/></param>
+        /// <returns>The dependency injection services.</returns>
+        public static IServiceCollection AddRavenDbDocStore(
+            this IServiceCollection services,
+            Action<RavenOptions> options)
+        {
+            services.ConfigureOptions<RavenOptionsSetup>();
+            services.Configure(options);
+            services.AddSingleton(sp =>
+            {
+                var setup = sp.GetRequiredService<IOptions<RavenOptions>>().Value;
+                return setup.GetDocumentStore(setup.BeforeInitializeDocStore);
+            });
+
+            return services;
+        }
+    }
+    
     public class RavenOptions
     {
         /// <summary>
